@@ -22,7 +22,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	router := gin.Default()
 
 	// Define API endpoints
-	router.GET("/employees", func(c *gin.Context) {
+	router.POST("/employees/paginated", func(c *gin.Context) {
 		internal.ListEmployees(c)
 	})
 

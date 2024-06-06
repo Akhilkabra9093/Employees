@@ -8,9 +8,53 @@ import (
 )
 
 func ListEmployees(c *gin.Context) {
-	// Implement logic to list employees
+	var req PaginationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if req.Page < 1 {
+		req.Page = 1
+	}
+	if req.Size < 1 {
+		req.Size = 10
+	}
+
+	offset := (req.Page - 1) * req.Size
+	rows, err := Db.Query("SELECT id, name, position, salary FROM employees LIMIT ? OFFSET ?", req.Size, offset)
+	if err != nil {
+		log.Printf("Error fetching employees: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees"})
+		return
+	}
+
+	var employees []Employee
+	for rows.Next() {
+		var emp Employee
+		if err := rows.Scan(&emp.ID, &emp.Name, &emp.Position, &emp.Salary); err != nil {
+			log.Printf("Error scanning employee: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees"})
+			return
+		}
+		employees = append(employees, emp)
+	}
+
+	// Get the total number of employees
+	var totalCount int
+	err = Db.QueryRow("SELECT COUNT(*) FROM employees").Scan(&totalCount)
+	if err != nil {
+		log.Printf("Error counting employees: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees count"})
+		return
+	}
+
+	// Respond with paginated employees and metadata
 	c.JSON(http.StatusOK, gin.H{
-		"message": "List of employees",
+		"page":      req.Page,
+		"size":      req.Size,
+		"total":     totalCount,
+		"employees": employees,
 	})
 }
 
