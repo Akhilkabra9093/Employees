@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func ListEmployees(c *gin.Context) {
+func ListEmployees(c *gin.Context, db *sql.DB) {
 	var req PaginationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -22,7 +22,7 @@ func ListEmployees(c *gin.Context) {
 	}
 
 	offset := (req.Page - 1) * req.Size
-	rows, err := Db.Query("SELECT id, name, position, salary FROM employees LIMIT ? OFFSET ?", req.Size, offset)
+	rows, err := db.Query("SELECT id, name, position, salary FROM employees LIMIT ? OFFSET ?", req.Size, offset)
 	if err != nil {
 		log.Printf("Error fetching employees: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees"})
@@ -42,7 +42,7 @@ func ListEmployees(c *gin.Context) {
 
 	// Get the total number of employees
 	var totalCount int
-	err = Db.QueryRow("SELECT COUNT(*) FROM employees").Scan(&totalCount)
+	err = db.QueryRow("SELECT COUNT(*) FROM employees").Scan(&totalCount)
 	if err != nil {
 		log.Printf("Error counting employees: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees count"})
@@ -58,16 +58,16 @@ func ListEmployees(c *gin.Context) {
 	})
 }
 
-func CreateEmployee(emp Employee) error {
-	_, err := Db.Exec("INSERT INTO employees (name, position, salary) VALUES (?, ?, ?)", emp.Name, emp.Position, emp.Salary)
+func CreateEmployee(emp Employee, db *sql.DB) error {
+	_, err := db.Exec("INSERT INTO employees (name, position, salary) VALUES (?, ?, ?)", emp.Name, emp.Position, emp.Salary)
 	if err != nil {
 		log.Printf("Error inserting employee: %v", err)
 	}
 	return err
 }
 
-func GetEmployee(id int) (*Employee, error) {
-	row := Db.QueryRow("SELECT id, name, position, salary FROM employees WHERE id = ?", id)
+func GetEmployee(id int, db *sql.DB) (*Employee, error) {
+	row := db.QueryRow("SELECT id, name, position, salary FROM employees WHERE id = ?", id)
 	emp := &Employee{}
 	err := row.Scan(&emp.ID, &emp.Name, &emp.Position, &emp.Salary)
 	if err == sql.ErrNoRows {
@@ -79,16 +79,16 @@ func GetEmployee(id int) (*Employee, error) {
 	return emp, err
 }
 
-func UpdateEmployee(id int, emp Employee) error {
-	_, err := Db.Exec("UPDATE employees SET name=?, position=?, salary=? WHERE id=?", emp.Name, emp.Position, emp.Salary, id)
+func UpdateEmployee(id int, emp Employee, db *sql.DB) error {
+	_, err := db.Exec("UPDATE employees SET name=?, position=?, salary=? WHERE id=?", emp.Name, emp.Position, emp.Salary, id)
 	if err != nil {
 		log.Printf("Error updating employee: %v", err)
 	}
 	return err
 }
 
-func DeleteEmployee(id int) error {
-	_, err := Db.Exec("DELETE FROM employees WHERE id=?", id)
+func DeleteEmployee(id int, db *sql.DB) error {
+	_, err := db.Exec("DELETE FROM employees WHERE id=?", id)
 	if err != nil {
 		log.Printf("Error deleting employee: %v", err)
 	}

@@ -13,7 +13,7 @@ func main() {
 	internal.InitDB()
 	defer internal.CloseDB()
 
-	router := api.SetupRouter(internal.Db)
+	router := api.SetupRouter(internal.GetDB())
 
 	//Setup API routes and start server
 	if err := api.StartServer(":8080", router); err != nil {

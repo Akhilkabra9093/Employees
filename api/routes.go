@@ -20,10 +20,11 @@ func StartServer(addr string, router *gin.Engine) error {
 func SetupRouter(db *sql.DB) *gin.Engine {
 	// Initialize Gin router
 	router := gin.Default()
+	database := internal.GetDB()
 
 	// Define API endpoints
 	router.POST("/employees/paginated", func(c *gin.Context) {
-		internal.ListEmployees(c)
+		internal.ListEmployees(c, database)
 	})
 
 	router.POST("/employees", func(c *gin.Context) {
@@ -35,7 +36,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 		}
 
 		// Call CreateEmployee function with the parsed Employee object
-		if err := internal.CreateEmployee(emp); err != nil {
+		if err := internal.CreateEmployee(emp, database); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create employee"})
 			return
 		}
@@ -52,7 +53,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
 			return
 		}
-		emp, err := internal.GetEmployee(employeeID)
+		emp, err := internal.GetEmployee(employeeID, database)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get employee"})
 			return
@@ -79,7 +80,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 			return
 		}
 
-		if err := internal.UpdateEmployee(employeeID, emp); err != nil {
+		if err := internal.UpdateEmployee(employeeID, emp, database); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update employee"})
 			return
 		}
@@ -93,7 +94,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
 			return
 		}
-		if err := internal.DeleteEmployee(employeeID); err != nil {
+		if err := internal.DeleteEmployee(employeeID, database); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete employee"})
 			return
 		}
