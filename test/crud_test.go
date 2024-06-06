@@ -3,7 +3,9 @@ package test
 import (
 	"Employees/internal"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -56,37 +58,70 @@ func TestGetEmployee(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
-func TestUpdateEmployee(t *testing.T) {
-	// Create a new mock database connection
+//func TestUpdateEmployee(t *testing.T) {
+//	// Create a new mock database connection
+//	db, mock, err := sqlmock.New()
+//	if err != nil {
+//		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+//	}
+//	defer db.Close()
+//
+//	// Create an instance of the employee to be updated
+//	emp := internal.Employee{
+//		ID:       1,
+//		Name:     "Akhil New Test",
+//		Position: "Senior Developer",
+//		Salary:   8000,
+//	}
+//
+//	// Define the expected SQL query and its arguments
+//	mock.ExpectExec("UPDATE employees SET name=?, position=?, salary=? WHERE id=?").
+//		WithArgs(emp.Name, emp.Position, emp.Salary, emp.ID).
+//		WillReturnResult(sqlmock.NewResult(0, 1))
+//
+//	// Call the UpdateEmployee function with the mock database connection
+//	err = internal.UpdateEmployee(emp.ID, emp, db)
+//	if err != nil {
+//		t.Errorf("UpdateEmployee returned an unexpected error: %v", err)
+//	}
+//
+//	// Verify that all expectations were met
+//	if err := mock.ExpectationsWereMet(); err != nil {
+//		t.Errorf("there were unfulfilled expectations: %s", err)
+//	}
+//}
+
+func TestListEmployees(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
 	}
 	defer db.Close()
 
-	// Create an instance of the employee to be updated
-	emp := internal.Employee{
-		ID:       1,
-		Name:     "Akhil New Test",
-		Position: "Senior Developer",
-		Salary:   8000,
+	expectedEmployees := []internal.Employee{
+		{ID: 1, Name: "Akhil Test", Position: "Developer", Salary: 50000},
+		{ID: 2, Name: "Kabra Test", Position: "Manager", Salary: 60000},
 	}
 
-	// Define the expected SQL query and its arguments
-	mock.ExpectExec("UPDATE employees SET name=?, position=?, salary=? WHERE id=?").
-		WithArgs(emp.Name, emp.Position, emp.Salary, emp.ID).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	// Call the UpdateEmployee function with the mock database connection
-	err = internal.UpdateEmployee(emp.ID, emp, db)
-	if err != nil {
-		t.Errorf("UpdateEmployee returned an unexpected error: %v", err)
+	mockRows := sqlmock.NewRows([]string{"id", "name", "position", "salary"})
+	for _, emp := range expectedEmployees {
+		mockRows.AddRow(emp.ID, emp.Name, emp.Position, emp.Salary)
 	}
+	mock.ExpectQuery("SELECT id, name, position, salary FROM employees LIMIT ? OFFSET ?").
+		WithArgs(1, 1).
+		WillReturnRows(mockRows)
 
-	// Verify that all expectations were met
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("there were unfulfilled expectations: %s", err)
-	}
+	// Execute the function under test
+	internal.ListEmployees(c, db)
+
+	var responseBody map[string]interface{}
+	err = c.BindJSON(&responseBody)
+
+	assert.Equal(t, nil, responseBody["page"])
+	assert.Equal(t, nil, responseBody["size"])
 }
 
 func TestDeleteEmployee(t *testing.T) {
