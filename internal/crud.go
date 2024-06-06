@@ -5,9 +5,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"sync"
+)
+
+var (
+	mu sync.Mutex
 )
 
 func ListEmployees(c *gin.Context, db *sql.DB) {
+	mu.Lock()
+	defer mu.Unlock()
 	var req PaginationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
@@ -56,6 +63,8 @@ func ListEmployees(c *gin.Context, db *sql.DB) {
 }
 
 func CreateEmployee(emp Employee, db *sql.DB) error {
+	mu.Lock()
+	defer mu.Unlock()
 	_, err := db.Exec("INSERT INTO employees (name, position, salary) VALUES (?, ?, ?)", emp.Name, emp.Position, emp.Salary)
 	if err != nil {
 		log.Printf("Error inserting employee: %v", err)
@@ -64,6 +73,8 @@ func CreateEmployee(emp Employee, db *sql.DB) error {
 }
 
 func GetEmployee(id int, db *sql.DB) (*Employee, error) {
+	mu.Lock()
+	defer mu.Unlock()
 	row := db.QueryRow("SELECT id, name, position, salary FROM employees WHERE id = ?", id)
 	emp := &Employee{}
 	err := row.Scan(&emp.ID, &emp.Name, &emp.Position, &emp.Salary)
@@ -77,14 +88,19 @@ func GetEmployee(id int, db *sql.DB) (*Employee, error) {
 }
 
 func UpdateEmployee(id int, emp Employee, db *sql.DB) error {
+	mu.Lock()
+	defer mu.Unlock()
 	_, err := db.Exec("UPDATE employees SET name=?, position=?, salary=? WHERE id=?", emp.Name, emp.Position, emp.Salary, id)
 	if err != nil {
 		log.Printf("Error updating employee: %v", err)
+		return err
 	}
-	return err
+	return nil
 }
 
 func DeleteEmployee(id int, db *sql.DB) error {
+	mu.Lock()
+	defer mu.Unlock()
 	_, err := db.Exec("DELETE FROM employees WHERE id=?", id)
 	if err != nil {
 		log.Printf("Error deleting employee: %v", err)
