@@ -40,7 +40,6 @@ func ListEmployees(c *gin.Context, db *sql.DB) {
 		employees = append(employees, emp)
 	}
 
-	// Get the total number of employees
 	var totalCount int
 	err = db.QueryRow("SELECT COUNT(*) FROM employees").Scan(&totalCount)
 	if err != nil {
@@ -48,8 +47,6 @@ func ListEmployees(c *gin.Context, db *sql.DB) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees count"})
 		return
 	}
-
-	// Respond with paginated employees and metadata
 	c.JSON(http.StatusOK, gin.H{
 		"page":      req.Page,
 		"size":      req.Size,

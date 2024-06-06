@@ -5,7 +5,6 @@ import (
 	"Employees/internal"
 	"fmt"
 	"log"
-	//"log"
 )
 
 func main() {

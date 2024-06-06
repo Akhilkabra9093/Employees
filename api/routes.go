@@ -18,35 +18,26 @@ func StartServer(addr string, router *gin.Engine) error {
 }
 
 func SetupRouter(db *sql.DB) *gin.Engine {
-	// Initialize Gin router
 	router := gin.Default()
 	database := internal.GetDB()
-
-	// Define API endpoints
 	router.POST("/employees/paginated", func(c *gin.Context) {
 		internal.ListEmployees(c, database)
 	})
 
 	router.POST("/employees", func(c *gin.Context) {
-		// Parse JSON request body into Employee object
 		var emp internal.Employee
 		if err := c.ShouldBindJSON(&emp); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		// Call CreateEmployee function with the parsed Employee object
 		if err := internal.CreateEmployee(emp, database); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create employee"})
 			return
 		}
-
-		// Respond with success message
 		c.JSON(http.StatusCreated, gin.H{"message": "Employee created successfully"})
 	})
 
 	router.GET("/employees/:id", func(c *gin.Context) {
-		// Extract ID from URL parameters
 		id := c.Param("id")
 		employeeID, err := strconv.Atoi(id)
 		if err != nil {
@@ -99,7 +90,6 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 			return
 		}
 
-		// Respond with success message
 		c.JSON(http.StatusOK, gin.H{"message": "Employee deleted successfully"})
 	})
 
